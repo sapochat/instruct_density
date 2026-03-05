@@ -664,7 +664,7 @@
   <!-- TAKEAWAYS -->
   <div class="takeaways">
     <h2>Key Takeaways</h2>
-    <p><span class="hl-green">compressed_nl</span> remains the sweet spot for practical use: 88% compliance at 41% of markdown's size. It strips articles, pronouns, and filler while keeping semantic clarity. Five of six models scored 87%+ on it.</p>
+    <p><span class="hl-green">compressed_nl</span> remains the sweet spot for practical use: 88% compliance at 41% of markdown's size. It strips articles, pronouns, and filler while keeping semantic clarity. Every model scored 80%+ on it, with four of six above 88%.</p>
     <p><span class="hl-yellow">The cliff lives at ~200 chars.</span> Below that threshold, models lose formatting rules, identity, and citation style. Factual accuracy and refusals are the most resilient instruction types — no_fabrication still hits 97% even in extreme compression. Formatting rules (concise, paragraph limits) break first, dropping 65-70pp.</p>
     <p><span class="hl-blue">b64_hybrid was a surprise performer</span> at 86% average, outscoring dsl (85%) and json_compact (81%) despite being the second-largest format. The base64 decoding overhead penalized it less than expected — Gemini (92%), GLM-5 (92%), and Kimi (93%) all excelled with it.</p>
     <p><span class="hl-orange">Gemini 3.1 Pro is the most resilient model under compression</span> with only a 23pp drop from markdown to extreme formats. It led overall at 82% across all formats. DeepSeek V3.2, despite the highest markdown score (97%), dropped 37pp to extreme — strong at the top, fragile at the bottom.</p>
