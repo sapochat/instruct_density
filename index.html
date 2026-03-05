@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instruction Format Density Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080d;
+    --surface: #111118;
+    --surface-2: #1a1a24;
+    --border: #1c1c28;
+    --border-accent: #2a2a38;
+    --text: #e4e4eb;
+    --text-dim: #a1a1aa;
+    --text-muted: #71717a;
+    --text-faint: #52525b;
+    --text-ghost: #3f3f46;
+    --green: #22c55e;
+    --green-dim: #065f46;
+    --yellow: #eab308;
+    --orange: #f97316;
+    --red: #ef4444;
+    --red-dim: #991b1b;
+    --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    --sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* HEADER */
+  .hero { margin-bottom: 48px; }
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  .hero .sub {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .hero .question {
+    font-size: 17px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+
+  /* TIER BADGES */
+  .tiers { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .tier-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .tier-extreme { background: #ef444418; color: var(--red); border: 1px solid #ef444430; }
+  .tier-inhuman { background: #f9731618; color: var(--orange); border: 1px solid #f9731630; }
+  .tier-compressed { background: #eab30818; color: var(--yellow); border: 1px solid #eab30830; }
+  .tier-human { background: #22c55e18; color: var(--green); border: 1px solid #22c55e30; }
+
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 48px; }
+  @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* SECTIONS */
+  .section { margin-bottom: 48px; }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .section-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* HEATMAP TABLE */
+  .heat-wrap { overflow-x: auto; }
+  .heat-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12px;
+  }
+  .heat-table th {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 10px;
+    padding: 6px 6px;
+    text-align: center;
+    color: var(--text-muted);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+  }
+  .heat-table th:first-child { text-align: left; padding-left: 10px; }
+  .heat-table td {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 6px;
+    text-align: center;
+    color: #fff;
+  }
+  .heat-table td:first-child {
+    text-align: left;
+    padding-left: 10px;
+    color: var(--text);
+  }
+  .heat-table tr.sweet-spot { outline: 1px solid #22c55e44; }
+  .heat-table tr.avg-row td { border-top: 2px solid var(--border-accent); }
+
+  .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .sweet-label { color: var(--green); font-size: 9px; margin-left: 6px; font-weight: 600; }
+
+  /* CLIFF BARS */
+  .cliff-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .cliff-label {
+    width: 110px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .cliff-bar-bg {
+    flex: 1;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cliff-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .cliff-formats {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 2px;
+    margin-left: 122px;
+  }
+
+  /* DENSITY BARS */
+  .density-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .density-name {
+    width: 130px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .density-bar-bg {
+    flex: 1;
+    height: 18px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .density-bar-fill { height: 100%; border-radius: 4px; opacity: 0.65; }
+  .density-score {
+    width: 44px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .density-meta {
+    width: 80px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  /* DROP BARS */
+  .drop-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .drop-model {
+    width: 140px;
+    font-family: var(--mono);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .drop-bar-bg {
+    flex: 1;
+    height: 22px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    position: relative;
+  }
+  .drop-bar-ghost {
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    opacity: 0.2;
+  }
+  .drop-bar-solid {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    border-radius: 4px;
+  }
+  .drop-label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .drop-pp {
+    width: 56px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* WHAT BREAKS */
+  .breaks-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 11px;
+  }
+  .breaks-table th {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 10px;
+    padding: 6px 8px;
+    text-align: left;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .breaks-table td {
+    font-family: var(--mono);
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .breaks-table td:first-child { color: var(--text-dim); }
+
+  /* TAKEAWAYS */
+  .takeaways {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+  }
+  .takeaways h2 {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .takeaways p {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+  .takeaways p:last-child { margin-bottom: 0; }
+  .hl-green { color: var(--green); font-family: var(--mono); font-weight: 600; }
+  .hl-yellow { color: var(--yellow); font-family: var(--mono); font-weight: 600; }
+  .hl-orange { color: var(--orange); font-family: var(--mono); font-weight: 600; }
+  .hl-red { color: var(--red); font-family: var(--mono); font-weight: 600; }
+  .hl-blue { color: #60a5fa; font-family: var(--mono); font-weight: 600; }
+
+  /* USAGE */
+  .usage-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+  .usage-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .usage-code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer span {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-ghost);
+  }
+
+  /* Heat colors */
+  .h95 { background: #065f46; } .h90 { background: #047857; } .h85 { background: #059669; }
+  .h75 { background: #d97706; } .h65 { background: #ea580c; } .h55 { background: #dc2626; }
+  .h45 { background: #991b1b; } .h35 { background: #7f1d1d; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Instruction Format Density Benchmark</h1>
+    <div class="sub">6 frontier models · 13 formats · 8 tests · 3 runs · 1,872 scored calls · March 2026</div>
+    <p class="question">How compressed can an LLM system prompt get before the model stops following instructions?</p>
+    <div class="tiers">
+      <span class="tier-badge tier-human">Human-readable</span>
+      <span class="tier-badge tier-compressed">Compressed</span>
+      <span class="tier-badge tier-inhuman">Inhuman</span>
+      <span class="tier-badge tier-extreme">Extreme</span>
+    </div>
+  </div>
+
+  <!-- KEY FINDINGS -->
+  <div class="cards">
+    <div class="card" style="border-color: #22c55e33;">
+      <div class="card-label" style="color: var(--green);">Sweet Spot</div>
+      <div class="card-value">compressed_nl</div>
+      <div class="card-desc">88% compliance at 41% of markdown's size. Stripped grammar, zero labels, near-full compliance.</div>
+    </div>
+    <div class="card" style="border-color: #ef444433;">
+      <div class="card-label" style="color: var(--red);">The Cliff</div>
+      <div class="card-value">&lt; 200 chars</div>
+      <div class="card-desc">58% pass rate. Below 200 chars, models lose formatting rules and identity. Factual accuracy partially survives.</div>
+    </div>
+    <div class="card" style="border-color: #eab30833;">
+      <div class="card-label" style="color: var(--yellow);">Best Density</div>
+      <div class="card-value">bitfield</div>
+      <div class="card-desc">515 compliance-per-size ratio. 59% pass at just 138 chars (11% of markdown).</div>
+    </div>
+  </div>
+
+  <!-- THE CLIFF -->
+  <div class="section">
+    <div class="section-title">The Compression Cliff</div>
+    <div class="section-sub">Average pass rate by character count band, all models</div>
+
+    <div class="cliff-row">
+      <div class="cliff-label">&lt; 200 chars</div>
+      <div class="cliff-bar-bg"><div class="cliff-bar-fill" style="width:58%;background:var(--red);">58%</div></div>
+    </div>
+    <div class="cliff-formats">bitfield, hex_tagged</div>
+
+    <div class="cliff-row" style="margin-top:10px">
+      <div class="cliff-label">200 – 400</div>
+      <div class="cliff-bar-bg"><div class="cliff-bar-fill" style="width:74%;background:var(--orange);">74%</div></div>
+    </div>
+    <div class="cliff-formats">emoji_code, microcode, symbol_stream</div>
+
+    <div class="cliff-row" style="margin-top:10px">
+      <div class="cliff-label">400 – 700</div>
+      <div class="cliff-bar-bg"><div class="cliff-bar-fill" style="width:83%;background:var(--yellow);">83%</div></div>
+    </div>
+    <div class="cliff-formats">compressed_nl, positional_grid, dsl</div>
+
+    <div class="cliff-row" style="margin-top:10px">
+      <div class="cliff-label">700 – 1100</div>
+      <div class="cliff-bar-bg"><div class="cliff-bar-fill" style="width:86%;background:var(--yellow);">86%</div></div>
+    </div>
+    <div class="cliff-formats">json_compact, table, yaml, b64_hybrid</div>
+
+    <div class="cliff-row" style="margin-top:10px">
+      <div class="cliff-label">1100+ chars</div>
+      <div class="cliff-bar-bg"><div class="cliff-bar-fill" style="width:90%;background:var(--green);">90%</div></div>
+    </div>
+    <div class="cliff-formats">markdown</div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="section">
+    <div class="section-title">Model × Format Heatmap</div>
+    <div class="section-sub">Pass rate (%) per model per format, sorted by density</div>
+    <div class="heat-wrap">
+      <table class="heat-table">
+        <thead><tr>
+          <th style="min-width:140px">Format</th>
+          <th>Ch</th>
+          <th style="color:#d97706">Opus 4.6</th>
+          <th style="color:#2563eb">DS V3.2</th>
+          <th style="color:#059669">Gem3 Pro</th>
+          <th style="color:#dc2626">GLM-5</th>
+          <th style="color:#7c3aed">Kimi 2.5</th>
+          <th style="color:#0891b2">Qwen 3.5</th>
+          <th style="color:#fff;font-weight:600">AVG</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="dot" style="background:var(--red)"></span>hex_tagged</td>
+            <td style="color:var(--text-faint)">133</td>
+            <td class="h55">62</td><td class="h65">63</td><td class="h45">47</td><td class="h55">55</td><td class="h65">65</td><td class="h45">48</td><td class="h55">57</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--red)"></span>bitfield</td>
+            <td style="color:var(--text-faint)">138</td>
+            <td class="h65">70</td><td class="h55">57</td><td class="h75">77</td><td class="h35">35</td><td class="h65">63</td><td class="h45">50</td><td class="h55">59</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--orange)"></span>emoji_code</td>
+            <td style="color:var(--text-faint)">201</td>
+            <td class="h75">75</td><td class="h65">68</td><td class="h85">83</td><td class="h75">82</td><td class="h75">77</td><td class="h65">68</td><td class="h75">76</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--orange)"></span>microcode</td>
+            <td style="color:var(--text-faint)">238</td>
+            <td class="h75">73</td><td class="h65">67</td><td class="h65">72</td><td class="h55">60</td><td class="h65">72</td><td class="h75">80</td><td class="h65">71</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--orange)"></span>symbol_stream</td>
+            <td style="color:var(--text-faint)">292</td>
+            <td class="h75">77</td><td class="h65">65</td><td class="h90">88</td><td class="h75">82</td><td class="h75">75</td><td class="h65">65</td><td class="h75">75</td>
+          </tr>
+          <tr class="sweet-spot">
+            <td><span class="dot" style="background:var(--yellow)"></span>compressed_nl<span class="sweet-label">SWEET SPOT</span></td>
+            <td style="color:var(--text-faint)">503</td>
+            <td class="h85">87</td><td class="h95">93</td><td class="h90">90</td><td class="h90">90</td><td class="h75">80</td><td class="h90">88</td><td class="h90">88</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--yellow)"></span>positional_grid</td>
+            <td style="color:var(--text-faint)">532</td>
+            <td class="h75">75</td><td class="h65">65</td><td class="h90">90</td><td class="h75">77</td><td class="h65">72</td><td class="h75">75</td><td class="h75">76</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--yellow)"></span>json_compact</td>
+            <td style="color:var(--text-faint)">765</td>
+            <td class="h90">88</td><td class="h75">75</td><td class="h75">82</td><td class="h90">90</td><td class="h75">80</td><td class="h75">73</td><td class="h75">81</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--green)"></span>dsl</td>
+            <td style="color:var(--text-faint)">688</td>
+            <td class="h85">87</td><td class="h75">80</td><td class="h75">80</td><td class="h95">93</td><td class="h85">83</td><td class="h85">85</td><td class="h85">85</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--green)"></span>b64_hybrid</td>
+            <td style="color:var(--text-faint)">1048</td>
+            <td class="h75">75</td><td class="h75">73</td><td class="h90">92</td><td class="h90">92</td><td class="h95">93</td><td class="h90">88</td><td class="h85">86</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--green)"></span>table</td>
+            <td style="color:var(--text-faint)">896</td>
+            <td class="h85">87</td><td class="h85">83</td><td class="h95">93</td><td class="h85">83</td><td class="h95">97</td><td class="h90">92</td><td class="h90">89</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--green)"></span>yaml</td>
+            <td style="color:var(--text-faint)">984</td>
+            <td class="h90">90</td><td class="h90">90</td><td class="h85">85</td><td class="h85">87</td><td class="h90">90</td><td class="h85">87</td><td class="h90">88</td>
+          </tr>
+          <tr>
+            <td><span class="dot" style="background:var(--green)"></span>markdown</td>
+            <td style="color:var(--text-faint)">1213</td>
+            <td class="h95">95</td><td class="h95">97</td><td class="h85">85</td><td class="h90">90</td><td class="h90">92</td><td class="h75">80</td><td class="h90">90</td>
+          </tr>
+          <tr class="avg-row">
+            <td style="font-weight:700;color:#fff">AVERAGE</td>
+            <td></td>
+            <td style="color:#22c55e;font-weight:600">80%</td>
+            <td style="color:#eab308;font-weight:600">75%</td>
+            <td style="color:#22c55e;font-weight:600">82%</td>
+            <td style="color:#eab308;font-weight:600">78%</td>
+            <td style="color:#22c55e;font-weight:600">80%</td>
+            <td style="color:#eab308;font-weight:600">75%</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROBUSTNESS -->
+  <div class="section">
+    <div class="section-title">Robustness: Markdown → Extreme</div>
+    <div class="section-sub">How much does each model degrade from markdown to extreme compression formats?</div>
+
+    <div class="drop-row">
+      <div class="drop-model" style="color:#059669">gemini-3.1-pro</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:85%;background:#059669"></div>
+        <div class="drop-bar-solid" style="width:62%;background:#059669"></div>
+        <div class="drop-label" style="left:calc(62% + 6px)">62% → 85%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--yellow)">-23pp</div>
+    </div>
+    <div class="drop-row">
+      <div class="drop-model" style="color:#7c3aed">kimi-k2.5</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:92%;background:#7c3aed"></div>
+        <div class="drop-bar-solid" style="width:64%;background:#7c3aed"></div>
+        <div class="drop-label" style="left:calc(64% + 6px)">64% → 92%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--yellow)">-28pp</div>
+    </div>
+    <div class="drop-row">
+      <div class="drop-model" style="color:#d97706">claude-opus-4.6</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:95%;background:#d97706"></div>
+        <div class="drop-bar-solid" style="width:66%;background:#d97706"></div>
+        <div class="drop-label" style="left:calc(66% + 6px)">66% → 95%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--orange)">-29pp</div>
+    </div>
+    <div class="drop-row">
+      <div class="drop-model" style="color:#0891b2">qwen3.5-397b</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:80%;background:#0891b2"></div>
+        <div class="drop-bar-solid" style="width:49%;background:#0891b2"></div>
+        <div class="drop-label" style="left:calc(49% + 6px)">49% → 80%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--orange)">-31pp</div>
+    </div>
+    <div class="drop-row">
+      <div class="drop-model" style="color:#2563eb">deepseek-v3.2</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:97%;background:#2563eb"></div>
+        <div class="drop-bar-solid" style="width:60%;background:#2563eb"></div>
+        <div class="drop-label" style="left:calc(60% + 6px)">60% → 97%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--red)">-37pp</div>
+    </div>
+    <div class="drop-row">
+      <div class="drop-model" style="color:#dc2626">glm-5</div>
+      <div class="drop-bar-bg">
+        <div class="drop-bar-ghost" style="width:90%;background:#dc2626"></div>
+        <div class="drop-bar-solid" style="width:45%;background:#dc2626"></div>
+        <div class="drop-label" style="left:calc(45% + 6px)">45% → 90%</div>
+      </div>
+      <div class="drop-pp" style="color:var(--red)">-45pp</div>
+    </div>
+  </div>
+
+  <!-- WHAT BREAKS FIRST -->
+  <div class="section">
+    <div class="section-title">What Breaks First</div>
+    <div class="section-sub">Biggest compliance drops from human-readable to extreme formats</div>
+    <table class="breaks-table">
+      <thead><tr>
+        <th>Check</th><th>Human-readable</th><th>Extreme</th><th>Drop</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Concise responses</td><td style="color:var(--green)">87%</td><td style="color:var(--red)">17%</td><td style="color:var(--red);font-weight:600">-70pp</td></tr>
+        <tr><td>Max 3 paragraphs</td><td style="color:var(--green)">94%</td><td style="color:var(--red)">25%</td><td style="color:var(--red);font-weight:600">-69pp</td></tr>
+        <tr><td>No markdown headers</td><td style="color:var(--green)">89%</td><td style="color:var(--red)">25%</td><td style="color:var(--red);font-weight:600">-64pp</td></tr>
+        <tr><td>Direct tone</td><td style="color:var(--green)">94%</td><td style="color:var(--red)">36%</td><td style="color:var(--red);font-weight:600">-58pp</td></tr>
+        <tr><td>Inline citations</td><td style="color:var(--green)">76%</td><td style="color:var(--red)">22%</td><td style="color:var(--red);font-weight:600">-54pp</td></tr>
+        <tr><td>Mentions research role</td><td style="color:var(--green)">98%</td><td style="color:var(--orange)">58%</td><td style="color:var(--orange);font-weight:600">-40pp</td></tr>
+        <tr><td>Identifies as Atlas</td><td style="color:var(--green)">94%</td><td style="color:var(--orange)">56%</td><td style="color:var(--orange);font-weight:600">-38pp</td></tr>
+        <tr><td>Identifies Python</td><td style="color:var(--green)">96%</td><td style="color:var(--green)">83%</td><td style="color:var(--yellow);font-weight:600">-13pp</td></tr>
+        <tr><td>Refuses medical diagnosis</td><td style="color:var(--green)">93%</td><td style="color:var(--green)">86%</td><td style="color:var(--text-muted);font-weight:600">-7pp</td></tr>
+        <tr><td>No fabrication</td><td style="color:var(--green)">100%</td><td style="color:var(--green)">97%</td><td style="color:var(--text-muted);font-weight:600">-3pp</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DENSITY SCORE -->
+  <div class="section">
+    <div class="section-title">Density Efficiency Score</div>
+    <div class="section-sub">pass_rate / relative_size_vs_markdown — higher = more compliance per character</div>
+
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--red)"></span>hex_tagged</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:100%;background:var(--red)"></div></div><div class="density-score">517</div><div class="density-meta">133ch / 57%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--red)"></span>bitfield</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:100%;background:var(--red)"></div></div><div class="density-score">515</div><div class="density-meta">138ch / 59%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--orange)"></span>emoji_code</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:88%;background:var(--orange)"></div></div><div class="density-score">456</div><div class="density-meta">201ch / 76%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--orange)"></span>microcode</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:70%;background:var(--orange)"></div></div><div class="density-score">360</div><div class="density-meta">238ch / 71%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--orange)"></span>symbol_stream</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:61%;background:var(--orange)"></div></div><div class="density-score">313</div><div class="density-meta">292ch / 75%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--yellow)"></span>compressed_nl</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:41%;background:var(--green)"></div></div><div class="density-score">212</div><div class="density-meta">503ch / 88%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--yellow)"></span>positional_grid</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:33%;background:var(--yellow)"></div></div><div class="density-score">172</div><div class="density-meta">532ch / 76%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--green)"></span>dsl</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:29%;background:var(--green)"></div></div><div class="density-score">149</div><div class="density-meta">688ch / 85%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--yellow)"></span>json_compact</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:25%;background:var(--yellow)"></div></div><div class="density-score">129</div><div class="density-meta">765ch / 81%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--green)"></span>table</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:23%;background:var(--green)"></div></div><div class="density-score">121</div><div class="density-meta">896ch / 89%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--green)"></span>yaml</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:21%;background:var(--green)"></div></div><div class="density-score">109</div><div class="density-meta">984ch / 88%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--green)"></span>b64_hybrid</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:19%;background:var(--green)"></div></div><div class="density-score">99</div><div class="density-meta">1048ch / 86%</div></div>
+    <div class="density-row"><div class="density-name"><span class="dot" style="background:var(--green)"></span>markdown</div><div class="density-bar-bg"><div class="density-bar-fill" style="width:17%;background:var(--green)"></div></div><div class="density-score">90</div><div class="density-meta">1213ch / 90%</div></div>
+  </div>
+
+  <!-- TAKEAWAYS -->
+  <div class="takeaways">
+    <h2>Key Takeaways</h2>
+    <p><span class="hl-green">compressed_nl</span> remains the sweet spot for practical use: 88% compliance at 41% of markdown's size. It strips articles, pronouns, and filler while keeping semantic clarity. Five of six models scored 87%+ on it.</p>
+    <p><span class="hl-yellow">The cliff lives at ~200 chars.</span> Below that threshold, models lose formatting rules, identity, and citation style. Factual accuracy and refusals are the most resilient instruction types — no_fabrication still hits 97% even in extreme compression. Formatting rules (concise, paragraph limits) break first, dropping 65-70pp.</p>
+    <p><span class="hl-blue">b64_hybrid was a surprise performer</span> at 86% average, outscoring dsl (85%) and json_compact (81%) despite being the second-largest format. The base64 decoding overhead penalized it less than expected — Gemini (92%), GLM-5 (92%), and Kimi (93%) all excelled with it.</p>
+    <p><span class="hl-orange">Gemini 3.1 Pro is the most resilient model under compression</span> with only a 23pp drop from markdown to extreme formats. It led overall at 82% across all formats. DeepSeek V3.2, despite the highest markdown score (97%), dropped 37pp to extreme — strong at the top, fragile at the bottom.</p>
+    <p><span class="hl-red">GLM-5 remains the most brittle</span> with a 45pp drop from markdown to extreme. It collapses particularly hard on bitfield (35%), dragging its average down despite strong showings on dsl (93%) and b64_hybrid (92%).</p>
+  </div>
+
+  <!-- USAGE -->
+  <div class="section" style="margin-top:48px">
+    <div class="section-title">Run It Yourself</div>
+    <div class="section-sub">Python 3.10+ stdlib only. No dependencies.</div>
+
+    <div class="usage-block">
+      <div class="usage-label">See all generated prompts</div>
+      <div class="usage-code">python instruction_density_bench.py --show-prompts --no-score</div>
+    </div>
+    <div class="usage-block">
+      <div class="usage-label">Full elite benchmark (6 frontier models, 13 formats, scored)</div>
+      <div class="usage-code">python instruction_density_bench.py --openrouter-key YOUR_KEY</div>
+    </div>
+    <div class="usage-block">
+      <div class="usage-label">Quick smoke test (no scoring)</div>
+      <div class="usage-code">python instruction_density_bench.py --openrouter-key YOUR_KEY \
+  --models anthropic/claude-opus-4.6 z-ai/glm-5 \
+  --formats markdown hex_tagged \
+  --tests identity guardrail_medical --no-score</div>
+    </div>
+    <div class="usage-block">
+      <div class="usage-label">Just the inhuman formats</div>
+      <div class="usage-code">python instruction_density_bench.py --openrouter-key YOUR_KEY --inhuman-only</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>Instruction Format Density Benchmark · MIT License · March 2026</span>
+    <div>
+      <span style="color:var(--green)">Sweet spot: compressed_nl (503ch, 88%)</span>
+      <span style="margin-left:16px;color:var(--red)">Cliff: &lt;200ch (58%)</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
